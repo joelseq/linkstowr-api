@@ -1,0 +1,10 @@
+application:
+  port: 8000
+database:
+  host: "localhost"
+  port: 5432
+  scheme: "http"
+  username: "root"
+  password: "root"
+  ns: "dev"
+  db: "dev"

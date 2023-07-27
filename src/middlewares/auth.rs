@@ -6,7 +6,7 @@ use axum::{
     response::Response,
 };
 use lazy_regex::regex_captures;
-use shuttle_secrets::SecretStore;
+use tracing::error;
 
 use crate::{
     auth::validate_jwt,
@@ -16,26 +16,24 @@ use crate::{
     types::{AppState, Token},
 };
 
+#[tracing::instrument(skip(ctx, req, next))]
 pub async fn mw_require_auth<B>(
     ctx: Result<Ctx>,
     req: Request<B>,
     next: Next<B>,
 ) -> Result<Response> {
-    println!("->> {:<12} - mw_require_auth - {ctx:?}", "MIDDLEWARE");
-
     ctx?;
 
     Ok(next.run(req).await)
 }
 
+#[tracing::instrument(skip(app_state, headers, req, next))]
 pub async fn mw_ctx_resolver<B>(
     app_state: State<AppState>,
     headers: HeaderMap,
     mut req: Request<B>,
     next: Next<B>,
 ) -> Result<Response> {
-    println!("->> {:<12} - mw_ctx_resolver", "MIDDLEWARE");
-
     // We need to get the Ctx as Result<Ctx> because it may not always be set
     let result_ctx = get_result_ctx(app_state, headers).await;
 
@@ -50,7 +48,7 @@ async fn get_result_ctx(app_state: State<AppState>, headers: HeaderMap) -> Resul
 
     let user_id = match (auth_header, token_header) {
         // Prefer to use the Authorization header if it is available
-        (Some(auth_header), _) => get_user_from_auth_header(auth_header, &app_state.secret_store),
+        (Some(auth_header), _) => get_user_from_auth_header(auth_header),
         (_, Some(token_header)) => get_user_from_token_header(token_header, &app_state).await,
         (_, _) => Err(Error::MissingAuth),
     }?;
@@ -64,8 +62,6 @@ impl<S: Send + Sync> FromRequestParts<S> for Ctx {
     type Rejection = Error;
 
     async fn from_request_parts(parts: &mut Parts, _state: &S) -> Result<Self> {
-        println!("->> {:<12} - Ctx", "EXTRACTOR");
-
         parts
             .extensions
             .get::<Result<Ctx>>()
@@ -76,14 +72,14 @@ impl<S: Send + Sync> FromRequestParts<S> for Ctx {
 
 // endregion: --- Ctx Extractor
 
-fn get_user_from_auth_header(header: &HeaderValue, secret_store: &SecretStore) -> Result<String> {
+fn get_user_from_auth_header(header: &HeaderValue) -> Result<String> {
     let auth_header = std::str::from_utf8(header.as_bytes())
         .ok()
         .ok_or(Error::MissingAuth)?;
     let pattern = regex_captures!(r#"^Bearer (.+)"#, auth_header);
 
     let user = match pattern {
-        Some((_, bearer_token)) => validate_jwt(bearer_token, secret_store),
+        Some((_, bearer_token)) => validate_jwt(bearer_token),
         None => Err(Error::InvalidAuthHeader),
     }?;
 
@@ -110,18 +106,18 @@ async fn validate_api_token(token: &str, app_state: &AppState) -> Result<String>
         .bind(("token_hash", hash))
         .await
         .map_err(|e| {
-            println!("Encountered error {:?}", e);
+            error!("Encountered error {:?}", e);
             Error::InvalidToken
         })?;
     let token: Option<Token> = result.take(0).map_err(|e| {
-        println!("Encountered error {:?}", e);
+        error!("Encountered error {:?}", e);
         Error::InvalidToken
     })?;
 
     match token {
         Some(token) => Ok(token.user.to_string()),
         None => {
-            println!("Failing at the match statement");
+            error!("Invalid API token passed in");
             Err(Error::InvalidToken)
         }
     }
