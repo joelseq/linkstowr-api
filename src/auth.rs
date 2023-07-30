@@ -1,7 +1,6 @@
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
-use shuttle_secrets::SecretStore;
 
 use crate::{
     error::{Error, Result},
@@ -15,7 +14,7 @@ pub struct Claims {
     pub exp: i64,
 }
 
-pub fn create_jwt(user: &User, secret_store: &SecretStore) -> Result<String> {
+pub fn create_jwt(user: &User) -> Result<String> {
     let exp = Utc::now()
         .checked_add_signed(chrono::Duration::hours(24))
         .expect("Failed generating timestamp")
@@ -27,9 +26,7 @@ pub fn create_jwt(user: &User, secret_store: &SecretStore) -> Result<String> {
         exp,
     };
     let header = Header::new(Algorithm::HS512);
-    let secret = secret_store
-        .get("JWT_ENCODING_SECRET")
-        .expect("Failed to get JWT encoding secret");
+    let secret = std::env::var("JWT_ENCODING_SECRET").expect("Failed to get JWT encoding secret");
     encode(
         &header,
         &claims,
@@ -38,10 +35,8 @@ pub fn create_jwt(user: &User, secret_store: &SecretStore) -> Result<String> {
     .map_err(|_| Error::JWTTokenCreationError)
 }
 
-pub fn validate_jwt(jwt: &str, secret_store: &SecretStore) -> Result<Claims> {
-    let secret = secret_store
-        .get("JWT_ENCODING_SECRET")
-        .expect("Failed to get JWT encoding secret");
+pub fn validate_jwt(jwt: &str) -> Result<Claims> {
+    let secret = std::env::var("JWT_ENCODING_SECRET").expect("Failed to get JWT encoding secret");
     let decoded = decode::<Claims>(
         jwt,
         &DecodingKey::from_secret(secret.as_bytes()),

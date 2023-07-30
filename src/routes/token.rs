@@ -5,6 +5,7 @@ use axum::{extract::State, routing::post, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use surrealdb::sql::{thing, Thing};
+use tracing::error;
 
 use crate::ctx::Ctx;
 use crate::error::{Error, Result};
@@ -33,14 +34,18 @@ struct TokenResponse {
     token: String,
 }
 
+#[tracing::instrument(
+    name = "Creating a new Token",
+    skip(ctx, app_state, payload),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn gen_token(
     State(app_state): State<AppState>,
     ctx: Ctx,
     Json(payload): Json<CreateTokenPayload>,
 ) -> Result<Json<TokenResponse>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - gen_token", "HANDLER");
-
     let controller = PrefixedApiKeyController::new("lshelf".into(), 8, 24);
     let (pak, hash) = controller.generate_key_and_hash();
 
@@ -55,7 +60,7 @@ async fn gen_token(
         })
         .await
         .map_err(|e| {
-            println!("Encountered error {:?}", e);
+            error!("Encountered error {:?}", e);
             Error::GenTokenFail
         })?;
 
@@ -73,13 +78,17 @@ struct ListTokensItem {
     pub short_token: String,
 }
 
+#[tracing::instrument(
+    name = "Get Tokens for user",
+    skip(ctx, app_state),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn get_tokens(
     ctx: Ctx,
     State(app_state): State<AppState>,
 ) -> Result<Json<Vec<ListTokensItem>>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - get_tokens", "HANDLER");
-
     let mut result = app_state
         .db
         .query("SELECT * FROM token WHERE user.id = $user_id;")
@@ -94,13 +103,18 @@ async fn get_tokens(
     Ok(body)
 }
 
+#[tracing::instrument(
+    name = "Deleting token",
+    skip(ctx, app_state),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn delete_token(
     ctx: Ctx,
     State(app_state): State<AppState>,
     Path(token_id): Path<String>,
 ) -> Result<Json<Value>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - delete_token", "HANDLER");
     let parts = token_id.split(":").collect::<Vec<&str>>();
 
     if parts.len() != 2 {

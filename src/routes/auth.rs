@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use surrealdb::engine::remote::http::Client;
 use surrealdb::Surreal;
+use tracing::error;
 
 use crate::auth::{create_jwt, validate_jwt};
 use crate::error::{Error, Result};
@@ -56,7 +57,7 @@ async fn signin(
     match Argon2::default().verify_password(payload.password.as_bytes(), &parsed_hash) {
         Ok(_) => {
             let user: User = user.into();
-            let token = create_jwt(&user, &app_state.secret_store)?;
+            let token = create_jwt(&user)?;
 
             let body = Json(UserResponse {
                 id: user.id.to_string(),
@@ -67,7 +68,7 @@ async fn signin(
             Ok(body)
         }
         Err(e) => {
-            println!("Failed with error {e}");
+            error!("Failed with error {e:?}");
             Err(Error::InvalidCredentials)
         }
     }
@@ -101,7 +102,7 @@ async fn signup(
     }
 
     let user = create_user(payload.username, payload.password, app_state.db).await?;
-    let token = create_jwt(&user, &app_state.secret_store)?;
+    let token = create_jwt(&user)?;
 
     let body = Json(UserResponse {
         id: user.id.to_string(),
@@ -118,7 +119,7 @@ async fn create_user(username: String, password: String, db: Arc<Surreal<Client>
     let password_hash = argon2
         .hash_password(&password.into_bytes(), &salt)
         .map_err(|e| {
-            println!("Encountered error {:?}", e);
+            error!("Encountered error {:?}", e);
             Error::SignUpFail
         })?
         .to_string();
@@ -131,17 +132,14 @@ async fn create_user(username: String, password: String, db: Arc<Surreal<Client>
         })
         .await
         .map_err(|e| {
-            println!("Encountered error {:?}", e);
+            error!("Encountered error {:?}", e);
             Error::SignUpFail
         })?;
 
     Ok(result)
 }
 
-async fn get_user_info(
-    headers: HeaderMap,
-    State(app_state): State<AppState>,
-) -> Result<Json<Value>> {
+async fn get_user_info(headers: HeaderMap) -> Result<Json<Value>> {
     let auth_header = headers.get(AUTHORIZATION).ok_or(Error::InvalidAuthHeader)?;
 
     let auth_header = std::str::from_utf8(auth_header.as_bytes())
@@ -150,7 +148,7 @@ async fn get_user_info(
     let pattern = regex_captures!(r#"^Bearer (.+)"#, auth_header);
 
     let claims = match pattern {
-        Some((_, bearer_token)) => validate_jwt(bearer_token, &app_state.secret_store),
+        Some((_, bearer_token)) => validate_jwt(bearer_token),
         None => Err(Error::InvalidAuthHeader),
     }?;
 

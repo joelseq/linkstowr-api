@@ -1,42 +1,98 @@
-use crate::error::Error;
-use shuttle_secrets::SecretStore;
+use std::fmt::{self, Display};
 
-#[derive(Debug)]
+use serde_aux::field_attributes::deserialize_number_from_string;
+
+#[derive(serde::Deserialize)]
 pub struct Settings {
+    pub application: ApplicationSettings,
     pub database: DatabaseSettings,
 }
 
-#[derive(Debug)]
+#[derive(serde::Deserialize)]
+pub struct ApplicationSettings {
+    pub host: String,
+    #[serde(deserialize_with = "deserialize_number_from_string")]
+    pub port: u16,
+}
+
+#[derive(serde::Deserialize)]
 pub struct DatabaseSettings {
     pub host: String,
     pub port: String,
-    pub secure: bool,
+    pub scheme: String,
     pub username: String,
     pub password: String,
     pub ns: String,
     pub db: String,
 }
 
-impl TryFrom<&SecretStore> for Settings {
-    type Error = Error;
+pub fn get_environment() -> Environment {
+    std::env::var("APP_ENVIRONMENT")
+        .unwrap_or_else(|_| "local".into())
+        .try_into()
+        .expect("Failed to parse APP_ENVIRONMENT.")
+}
 
-    fn try_from(store: &SecretStore) -> Result<Self, Self::Error> {
-        let scheme = get_secret(store, "DB_SCHEME")?;
-        let secure = if scheme == "https" { true } else { false };
+pub fn get_configuration() -> Result<Settings, config::ConfigError> {
+    let base_path = std::env::current_dir().expect("Failed to determine the current directory");
+    let configuration_directory = base_path.join("configuration");
 
-        let settings = Settings {
-            database: DatabaseSettings {
-                host: get_secret(store, "DB_HOST")?,
-                port: get_secret(store, "DB_PORT")?,
-                secure,
-                username: get_secret(store, "DB_USERNAME")?,
-                password: get_secret(store, "DB_PASSWORD")?,
-                ns: get_secret(store, "DB_NS")?,
-                db: get_secret(store, "DB_DB")?,
-            },
-        };
+    let environment: Environment = get_environment();
+    let environment_filename = format!("{}.yaml", environment.as_str());
+    let settings = config::Config::builder()
+        .add_source(config::File::from(
+            configuration_directory.join("base.yaml"),
+        ))
+        .add_source(config::File::from(
+            configuration_directory.join(environment_filename),
+        ))
+        // Add in settings from environment variables (with a prefix of APP and
+        // '__' as separator)
+        // E.g. `APP_APPLICATION__PORT=5001` would set `Settings.application.port`
+        .add_source(
+            config::Environment::with_prefix("APP")
+                .prefix_separator("_")
+                .separator("__"),
+        )
+        .build()?;
 
-        Ok(settings)
+    settings.try_deserialize::<Settings>()
+}
+
+/// The possible runtime environment for our application.
+pub enum Environment {
+    Local,
+    Production,
+}
+
+impl Environment {
+    pub fn as_str(&self) -> &'static str {
+        match self {
+            Environment::Local => "local",
+            Environment::Production => "production",
+        }
+    }
+}
+
+impl Display for Environment {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
+impl TryFrom<String> for Environment {
+    type Error = String;
+
+    fn try_from(s: String) -> Result<Self, Self::Error> {
+        match s.to_lowercase().as_str() {
+            "local" => Ok(Self::Local),
+            "production" => Ok(Self::Production),
+            other => Err(format!(
+                "{} is not a supported environment. \
+            Use either `local` or `production`.",
+                other
+            )),
+        }
     }
 }
 
@@ -49,12 +105,5 @@ impl DatabaseSettings {
         }
 
         connection_string
-    }
-}
-
-fn get_secret(store: &SecretStore, env_var: &str) -> Result<String, Error> {
-    match store.get(env_var) {
-        Some(secret) => Ok(secret),
-        None => Err(Error::MissingEnvVar),
     }
 }

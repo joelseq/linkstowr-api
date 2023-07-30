@@ -2,6 +2,7 @@ use axum::{extract::State, routing::post, Json, Router};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use surrealdb::sql::thing;
+use tracing::error;
 
 use crate::{
     ctx::Ctx,
@@ -16,14 +17,18 @@ pub fn routes(state: AppState) -> Router {
         .with_state(state)
 }
 
+#[tracing::instrument(
+    name = "Creating a link",
+    skip(ctx, app_state),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn create_link(
     ctx: Ctx,
     State(app_state): State<AppState>,
     Json(payload): Json<LinkPayload>,
 ) -> Result<Json<Value>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - create_link", "HANDLER");
-
     let created: Link = app_state
         .db
         .create("link")
@@ -35,7 +40,7 @@ async fn create_link(
         })
         .await
         .map_err(|e| {
-            println!("Encountered error {:?}", e);
+            error!("Encountered error {:?}", e);
             Error::CreateLinkFail
         })?;
 
@@ -56,10 +61,14 @@ struct LinkResponse {
     pub note: String,
 }
 
+#[tracing::instrument(
+    name = "Getting links",
+    skip(ctx, app_state),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn get_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<Vec<LinkResponse>>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - get_links", "HANDLER");
-
     let mut result = app_state
         .db
         .query("SELECT * FROM link WHERE user.id = $user_id;")
@@ -74,10 +83,14 @@ async fn get_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<V
     Ok(body)
 }
 
+#[tracing::instrument(
+    name = "Clearing links",
+    skip(ctx, app_state),
+    fields(
+        user_id = %ctx.user_id(),
+    )
+)]
 async fn clear_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<Value>> {
-    // TODO: Add tracing
-    println!("->> {:<12} - clear_links", "HANDLER");
-
     let mut result = app_state
         .db
         .query("DELETE link WHERE user.id = $user_id;")

@@ -1,7 +1,6 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use shuttle_secrets::SecretStore;
 use surrealdb::{engine::remote::http::Client, sql::Thing, Surreal};
 
 pub type DB = Surreal<Client>;
@@ -9,15 +8,11 @@ pub type DB = Surreal<Client>;
 #[derive(Clone)]
 pub struct AppState {
     pub db: Arc<DB>,
-    pub secret_store: Arc<SecretStore>,
 }
 
 impl AppState {
-    pub fn new(db: DB, secret_store: SecretStore) -> Self {
-        AppState {
-            db: Arc::new(db),
-            secret_store: Arc::new(secret_store),
-        }
+    pub fn new(db: DB) -> Self {
+        AppState { db: Arc::new(db) }
     }
 }
 
