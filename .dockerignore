@@ -1,0 +1,6 @@
+# flyctl launch added from .gitignore
+target
+data
+**/Secrets*.toml
+**/.env
+fly.toml
