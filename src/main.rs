@@ -44,6 +44,14 @@ async fn main() -> Result<(), std::io::Error> {
     Ok(())
 }
 
+#[tracing::instrument(
+    name = "Setting up Database",
+    skip(configuration),
+    fields(
+        namespace = %configuration.database.ns,
+        database = %configuration.database.db,
+    )
+)]
 async fn get_db(configuration: &Settings) -> Surreal<Client> {
     let connection_string = configuration.database.get_connection_string();
     let db = if configuration.database.scheme == "https" {
@@ -66,6 +74,11 @@ async fn get_db(configuration: &Settings) -> Surreal<Client> {
         .use_db(&configuration.database.db)
         .await
         .unwrap();
+
+    info!(
+        "Connected to namespace: {}, database: {}",
+        &configuration.database.ns, &configuration.database.db
+    );
 
     db
 }
