@@ -1,0 +1,87 @@
+name: Rust
+
+on: [push, pull_request]
+
+env:
+  CARGO_TERM_COLOR: always
+
+# A workflow run is made up of one or more jobs, which run in parallel by default
+# Each job runs in a runner environment specified by runs-on
+jobs:
+  # Unique identifier of our job (`job_id`)
+  test:
+    # Sets the name `Test` for the job, which is displayed in the GitHub UI
+    name: Test
+    # Containers must run in Linux based operating systems
+    runs-on: ubuntu-latest
+    # Service containers to run with the `test` container job
+    services:
+      # Label used to access the service container
+      postgres:
+        # Docker Hub image 
+        image: postgres:14
+        # Environment variables scoped only for the `postgres` element
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: password
+          POSTGRES_DB: postgres
+        # When you map ports using the ports keyword, GitHub uses the --publish command to publish the container’s ports to the Docker host
+        # Opens tcp port 5432 on the host and service container
+        ports:
+          - 5432:5432
+    steps:
+        # Downloads a copy of the code in your repository before running CI tests
+      - name: Check out repository code
+        # The uses keyword specifies that this step will run v3 of the actions/checkout action. 
+        # This is an action that checks out your repository onto the runner, allowing you to run scripts or other actions against your code (such as build and test tools).
+        # You should use the checkout action any time your workflow will run against the repository's code.
+        uses: actions/checkout@v3
+
+       # This GitHub Action installs a Rust toolchain using rustup. It is designed for one-line concise usage and good defaults.
+      - name: Install the Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      # A GitHub Action that implements smart caching for rust/cargo projects with sensible defaults.
+      - name: Rust Cache Action
+        uses: Swatinem/rust-cache@v2
+
+      - name: Run tests
+        run: cargo test
+
+  # `fmt` container job
+  fmt:
+    name: Rustfmt
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          # Specific to dtolnay/rust-toolchain: Comma-separated string of additional components to install
+          components: rustfmt
+      - name: Enforce formatting
+        run: cargo fmt --check
+
+  # `clippy` container job
+  clippy:
+    name: Clippy
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy
+      - uses: Swatinem/rust-cache@v2
+      - name: Linting
+        run: cargo clippy -- -D warnings
+
+  # `coverage` container job
+  coverage:
+    name: Code coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - name: Generate code coverage
+        run: cargo install cargo-tarpaulin && cargo tarpaulin --verbose --workspace
