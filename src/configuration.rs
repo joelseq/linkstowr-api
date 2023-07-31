@@ -102,6 +102,8 @@ impl DatabaseSettings {
 
         if self.port != "80" {
             connection_string = format!("{}://{}:{}", self.scheme, connection_string, self.port);
+        } else {
+            connection_string = format!("{}://{}", self.scheme, connection_string);
         }
 
         connection_string
