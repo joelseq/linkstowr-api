@@ -10,13 +10,11 @@ use axum::{extract::State, routing::post, Json, Router};
 use lazy_regex::regex_captures;
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use surrealdb::engine::remote::http::Client;
-use surrealdb::Surreal;
 use tracing::error;
 
 use crate::auth::{create_jwt, validate_jwt};
 use crate::error::{Error, Result};
-use crate::types::{AppState, CreateUserContent, User, UserDBResult};
+use crate::types::{AppState, CreateUserContent, User, UserDBResult, DB};
 
 pub fn routes(state: AppState) -> Router {
     Router::new()
@@ -113,7 +111,7 @@ async fn signup(
     Ok(body)
 }
 
-async fn create_user(username: String, password: String, db: Arc<Surreal<Client>>) -> Result<User> {
+async fn create_user(username: String, password: String, db: Arc<DB>) -> Result<User> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let password_hash = argon2

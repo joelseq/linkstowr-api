@@ -5,11 +5,7 @@ use linkshelf::{
     telemetry::init_subscribers,
     types::AppState,
 };
-use surrealdb::{
-    engine::remote::http::{Client, Http, Https},
-    opt::auth::Root,
-    Surreal,
-};
+use surrealdb::{engine::any::Any, opt::auth::Root, Surreal};
 use tracing::info;
 
 #[tokio::main]
@@ -52,17 +48,11 @@ async fn main() -> Result<(), std::io::Error> {
         database = %configuration.database.db,
     )
 )]
-async fn get_db(configuration: &Settings) -> Surreal<Client> {
+async fn get_db(configuration: &Settings) -> Surreal<Any> {
     let connection_string = configuration.database.get_connection_string();
-    let db = if configuration.database.scheme == "https" {
-        Surreal::new::<Https>(connection_string)
-            .await
-            .expect("Could not connect to SurrealDB")
-    } else {
-        Surreal::new::<Http>(connection_string)
-            .await
-            .expect("Could not connect to SurrealDB")
-    };
+    let db = surrealdb::engine::any::connect(connection_string)
+        .await
+        .expect("Could not connect to SurrealDB");
     db.signin(Root {
         username: &configuration.database.username,
         password: &configuration.database.password,

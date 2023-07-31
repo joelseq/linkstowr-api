@@ -101,7 +101,7 @@ impl DatabaseSettings {
         let mut connection_string = self.host.clone();
 
         if self.port != "80" {
-            connection_string = format!("{}:{}", connection_string, self.port);
+            connection_string = format!("{}://{}:{}", self.scheme, connection_string, self.port);
         }
 
         connection_string

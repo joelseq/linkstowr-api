@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
-use surrealdb::{engine::remote::http::Client, sql::Thing, Surreal};
+use surrealdb::{engine::any::Any, sql::Thing, Surreal};
 
-pub type DB = Surreal<Client>;
+pub type DB = Surreal<Any>;
 
 #[derive(Clone)]
 pub struct AppState {
