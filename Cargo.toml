@@ -24,6 +24,7 @@ serde_with = "3"
 # DB
 surrealdb = { git = "https://github.com/surrealdb/surrealdb.git", tag = "v1.0.0-beta.9+20230402", features = [
   "protocol-http",
+  "kv-mem",
 ] }
 # Prefixed API Key deps
 bs58 = "0.4.0"
@@ -61,3 +62,6 @@ jsonwebtoken = "8.3.0"
 lazy-regex = "2"
 strum_macros = "0.24"
 uuid = "1.3.3"
+
+[dev-dependencies]
+reqwest = "0.11.18"
