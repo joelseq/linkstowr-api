@@ -17,7 +17,7 @@ impl Ctx {
     }
 
     pub fn try_user_id_tuple(&self) -> Result<(&str, &str)> {
-        let parts: Vec<&str> = self.user_id.split(":").collect();
+        let parts: Vec<&str> = self.user_id.split(':').collect();
 
         match parts.len() {
             2 => Ok((parts[0], parts[1])),

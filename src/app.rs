@@ -35,7 +35,7 @@ pub fn get_app(state: &AppState) -> Router {
             middlewares::auth::mw_ctx_resolver,
         ))
         // include trace context as header into the response
-        .layer(OtelInResponseLayer::default())
+        .layer(OtelInResponseLayer)
         // start OpenTelemetry trace on incoming request
         .layer(OtelAxumLayer::default())
         .route("/health_check", get(health_check))

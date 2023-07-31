@@ -115,7 +115,7 @@ async fn delete_token(
     State(app_state): State<AppState>,
     Path(token_id): Path<String>,
 ) -> Result<Json<Value>> {
-    let parts = token_id.split(":").collect::<Vec<&str>>();
+    let parts = token_id.split(':').collect::<Vec<&str>>();
 
     if parts.len() != 2 {
         return Err(Error::InvalidDeleteToken);
