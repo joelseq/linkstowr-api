@@ -1,6 +1,6 @@
 use std::net::TcpListener;
 
-use linkshelf::{app::get_app, types::AppState};
+use linkstowr::{app::get_app, types::AppState};
 
 pub struct TestApp {
     pub address: String,

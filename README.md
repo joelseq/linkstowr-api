@@ -1,6 +1,6 @@
-# LinkShelf API
+# LinkStowr API
 
-API for the LinkShelf web app, chrome extension and obsidian plugin.
+API for the LinkStowr web app, chrome extension and obsidian plugin.
 
 ## Developing
 

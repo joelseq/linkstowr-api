@@ -101,7 +101,7 @@ pub fn build_otel_layer<S>() -> Result<OpenTelemetryLayer<S, Tracer>, TraceError
 where
     S: Subscriber + for<'a> LookupSpan<'a>,
 {
-    let service_name = std::env::var("OTEL_SERVICE_NAME").unwrap_or("linkshelf-dev".into());
+    let service_name = std::env::var("OTEL_SERVICE_NAME").unwrap_or("linkstowr-dev".into());
     let resource = Resource::new(vec![semconv::resource::SERVICE_NAME.string(service_name)]);
 
     init_propagator()?;
