@@ -1,5 +1,5 @@
 [package]
-name = "linkshelf"
+name = "linkstowr"
 version = "0.1.0"
 edition = "2021"
 
@@ -9,7 +9,7 @@ path = "src/lib.rs"
 
 [[bin]]
 path = "src/main.rs"
-name = "linkshelf"
+name = "linkstowr"
 
 [dependencies]
 # Axum

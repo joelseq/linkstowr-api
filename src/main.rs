@@ -1,5 +1,5 @@
 use dotenv::dotenv;
-use linkshelf::{
+use linkstowr::{
     app::get_app,
     configuration::{get_configuration, get_environment, Environment, Settings},
     telemetry::init_subscribers,
