@@ -9,12 +9,12 @@ use tracing::error;
 
 use crate::ctx::Ctx;
 use crate::error::{Error, Result};
-use crate::prefixed_api_key::PrefixedApiKeyController;
+use crate::prefixed_api_key::{PrefixedApiKey, PrefixedApiKeyController};
 use crate::types::{AppState, Token};
 
 pub fn routes(state: AppState) -> Router {
     Router::new()
-        .route("/tokens", post(gen_token).get(get_tokens))
+        .route("/tokens", post(create_token).get(get_tokens))
         .route("/tokens/:id", delete(delete_token))
         .with_state(state)
 }
@@ -34,6 +34,28 @@ struct TokenResponse {
     token: String,
 }
 
+pub async fn gen_pak(app_state: &AppState, user_id: &str, name: &str) -> Result<PrefixedApiKey> {
+    let controller = PrefixedApiKeyController::new("lshelf".into(), 8, 24);
+    let (pak, hash) = controller.generate_key_and_hash();
+
+    let _result: Vec<Token> = app_state
+        .db
+        .create("token")
+        .content(Token {
+            token_hash: hash.clone(),
+            name: name.into(),
+            short_token: pak.short_token().into(),
+            user: thing(user_id).expect("Failed to convert ctx user_id to thing"),
+        })
+        .await
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::GenTokenFail
+        })?;
+
+    Ok(pak)
+}
+
 #[tracing::instrument(
     name = "Creating a new Token",
     skip(ctx, app_state, payload),
@@ -41,28 +63,12 @@ struct TokenResponse {
         user_id = %ctx.user_id(),
     )
 )]
-async fn gen_token(
+async fn create_token(
     State(app_state): State<AppState>,
     ctx: Ctx,
     Json(payload): Json<CreateTokenPayload>,
 ) -> Result<Json<TokenResponse>> {
-    let controller = PrefixedApiKeyController::new("lshelf".into(), 8, 24);
-    let (pak, hash) = controller.generate_key_and_hash();
-
-    let _result: Token = app_state
-        .db
-        .create("token")
-        .content(Token {
-            token_hash: hash.clone(),
-            name: payload.name.clone(),
-            short_token: pak.short_token().into(),
-            user: thing(ctx.user_id()).expect("Failed to convert ctx user_id to thing"),
-        })
-        .await
-        .map_err(|e| {
-            error!("Encountered error {:?}", e);
-            Error::GenTokenFail
-        })?;
+    let pak = gen_pak(&app_state, ctx.user_id(), &payload.name).await?;
 
     let body = Json(TokenResponse {
         token: pak.to_string(),

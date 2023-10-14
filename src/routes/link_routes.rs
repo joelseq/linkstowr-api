@@ -29,7 +29,7 @@ async fn create_link(
     State(app_state): State<AppState>,
     Json(payload): Json<LinkPayload>,
 ) -> Result<Json<Value>> {
-    let created: Link = app_state
+    let created: Vec<Link> = app_state
         .db
         .create("link")
         .content(Link {
@@ -44,6 +44,8 @@ async fn create_link(
             Error::CreateLinkFail
         })?;
 
+    let created = created.first().ok_or(Error::CreateLinkFail)?;
+
     let body = Json(json!({
         "result": {
             "url": created.url,
@@ -55,7 +57,7 @@ async fn create_link(
 }
 
 #[derive(Debug, Deserialize, Serialize)]
-struct LinkResponse {
+pub struct LinkResponse {
     pub url: String,
     pub title: String,
     pub note: String,
@@ -72,7 +74,7 @@ async fn get_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<V
     let mut result = app_state
         .db
         .query("SELECT * FROM link WHERE user.id = $user_id;")
-        .bind(("user_id", ctx.user_id()))
+        .bind(("user_id", thing(ctx.user_id()).unwrap()))
         .await
         .map_err(|_| Error::GetLinksFail)?;
 

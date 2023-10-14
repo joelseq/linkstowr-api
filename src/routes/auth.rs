@@ -31,9 +31,10 @@ struct SigninPayload {
 }
 
 #[derive(Debug, Serialize, Deserialize)]
-struct UserResponse {
-    id: String,
-    username: String,
+pub struct UserResponse {
+    // Making these public for test assertions
+    pub id: String,
+    pub username: String,
     token: String,
 }
 
@@ -111,7 +112,7 @@ async fn signup(
     Ok(body)
 }
 
-async fn create_user(username: String, password: String, db: Arc<DB>) -> Result<User> {
+pub async fn create_user(username: String, password: String, db: Arc<DB>) -> Result<User> {
     let salt = SaltString::generate(&mut OsRng);
     let argon2 = Argon2::default();
     let password_hash = argon2
@@ -122,7 +123,7 @@ async fn create_user(username: String, password: String, db: Arc<DB>) -> Result<
         })?
         .to_string();
 
-    let result: User = db
+    let result: Vec<User> = db
         .create("user")
         .content(CreateUserContent {
             username,
@@ -133,8 +134,9 @@ async fn create_user(username: String, password: String, db: Arc<DB>) -> Result<
             error!("Encountered error {:?}", e);
             Error::SignUpFail
         })?;
+    let user = result.first().ok_or(Error::SignUpFail)?.to_owned();
 
-    Ok(result)
+    Ok(user)
 }
 
 async fn get_user_info(headers: HeaderMap) -> Result<Json<Value>> {
