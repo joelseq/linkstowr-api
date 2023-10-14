@@ -45,7 +45,7 @@ pub async fn gen_pak(app_state: &AppState, user_id: &str, name: &str) -> Result<
             token_hash: hash.clone(),
             name: name.into(),
             short_token: pak.short_token().into(),
-            user: thing(user_id.into()).expect("Failed to convert ctx user_id to thing"),
+            user: thing(user_id).expect("Failed to convert ctx user_id to thing"),
         })
         .await
         .map_err(|e| {
