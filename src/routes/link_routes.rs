@@ -76,7 +76,10 @@ async fn get_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<V
         .query("SELECT * FROM link WHERE user.id = $user_id;")
         .bind(("user_id", thing(ctx.user_id()).unwrap()))
         .await
-        .map_err(|_| Error::GetLinksFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::GetLinksFail
+        })?;
 
     let links: Vec<LinkResponse> = result.take(0).map_err(|_| Error::GetLinksFail)?;
 
@@ -98,7 +101,10 @@ async fn clear_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json
         .query("DELETE link WHERE user.id = $user_id;")
         .bind(("user_id", ctx.user_id()))
         .await
-        .map_err(|_| Error::ClearLinksFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::ClearLinksFail
+        })?;
 
     let deleted: surrealdb::Result<Vec<Link>> = result.take(0);
 
