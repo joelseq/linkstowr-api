@@ -47,12 +47,21 @@ async fn signin(
         .query("SELECT * FROM user WHERE username = $username")
         .bind(("username", payload.username))
         .await
-        .map_err(|_| Error::SignInFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::SignInFail
+        })?;
 
-    let user: Option<UserDBResult> = result.take(0).map_err(|_| Error::SignInFail)?;
+    let user: Option<UserDBResult> = result.take(0).map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::SignInFail
+    })?;
     let user = user.ok_or(Error::InvalidCredentials)?;
 
-    let parsed_hash = PasswordHash::new(&user.password).map_err(|_| Error::SignInFail)?;
+    let parsed_hash = PasswordHash::new(&user.password).map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::SignInFail
+    })?;
     match Argon2::default().verify_password(payload.password.as_bytes(), &parsed_hash) {
         Ok(_) => {
             let user: User = user.into();
@@ -92,9 +101,15 @@ async fn signup(
         .query("SELECT * FROM user WHERE username = $username")
         .bind(("username", &payload.username))
         .await
-        .map_err(|_| Error::SignUpFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::SignUpFail
+        })?;
 
-    let user: Option<UserDBResult> = result.take(0).map_err(|_| Error::SignUpFail)?;
+    let user: Option<UserDBResult> = result.take(0).map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::SignUpFail
+    })?;
 
     if user.is_some() {
         return Err(Error::UsernameExists);
