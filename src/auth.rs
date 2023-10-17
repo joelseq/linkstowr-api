@@ -1,6 +1,7 @@
 use chrono::Utc;
 use jsonwebtoken::{decode, encode, Algorithm, DecodingKey, EncodingKey, Header, Validation};
 use serde::{Deserialize, Serialize};
+use tracing::error;
 
 use crate::{
     error::{Error, Result},
@@ -32,7 +33,10 @@ pub fn create_jwt(user: &User) -> Result<String> {
         &claims,
         &EncodingKey::from_secret(secret.as_bytes()),
     )
-    .map_err(|_| Error::JWTTokenCreationError)
+    .map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::JWTTokenCreationError
+    })
 }
 
 pub fn validate_jwt(jwt: &str) -> Result<Claims> {
@@ -42,7 +46,10 @@ pub fn validate_jwt(jwt: &str) -> Result<Claims> {
         &DecodingKey::from_secret(secret.as_bytes()),
         &Validation::new(Algorithm::HS512),
     )
-    .map_err(|_| Error::JWTValidationError)?;
+    .map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::JWTValidationError
+    })?;
     let current_timestamp = Utc::now().timestamp();
 
     if decoded.claims.exp < current_timestamp {

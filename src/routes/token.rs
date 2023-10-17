@@ -100,9 +100,15 @@ async fn get_tokens(
         .query("SELECT * FROM token WHERE user.id = $user_id;")
         .bind(("user_id", ctx.user_id()))
         .await
-        .map_err(|_| Error::GetTokensFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::GetTokensFail
+        })?;
 
-    let tokens: Vec<ListTokensItem> = result.take(0).map_err(|_| Error::GetTokensFail)?;
+    let tokens: Vec<ListTokensItem> = result.take(0).map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::GetTokensFail
+    })?;
 
     let body = Json(tokens);
 
@@ -133,7 +139,10 @@ async fn delete_token(
         .bind(("token_id", token_id))
         .bind(("user_id", ctx.user_id()))
         .await
-        .map_err(|_| Error::DeleteTokenFail)?;
+        .map_err(|e| {
+            error!("Encountered error {:?}", e);
+            Error::DeleteTokenFail
+        })?;
 
     let deleted: surrealdb::Result<Vec<Token>> = result.take(0);
 

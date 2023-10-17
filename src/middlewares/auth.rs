@@ -97,7 +97,10 @@ async fn get_user_from_token_header(header: &HeaderValue, app_state: &AppState) 
 }
 
 async fn validate_api_token(token: &str, app_state: &AppState) -> Result<String> {
-    let pak: PrefixedApiKey = token.try_into().map_err(|_| Error::InvalidToken)?;
+    let pak: PrefixedApiKey = token.try_into().map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::InvalidToken
+    })?;
     let hash = pak.long_token_hashed();
 
     let mut result = app_state

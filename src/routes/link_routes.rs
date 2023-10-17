@@ -81,7 +81,10 @@ async fn get_links(ctx: Ctx, State(app_state): State<AppState>) -> Result<Json<V
             Error::GetLinksFail
         })?;
 
-    let links: Vec<LinkResponse> = result.take(0).map_err(|_| Error::GetLinksFail)?;
+    let links: Vec<LinkResponse> = result.take(0).map_err(|e| {
+        error!("Encountered error {:?}", e);
+        Error::GetLinksFail
+    })?;
 
     let body = Json(links);
 
