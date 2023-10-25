@@ -1,4 +1,5 @@
 use axum::{extract::State, routing::post, Json, Router};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
 use surrealdb::sql::thing;
@@ -61,6 +62,7 @@ pub struct LinkResponse {
     pub url: String,
     pub title: String,
     pub note: String,
+    pub bookmarked_at: DateTime<Utc>,
 }
 
 #[tracing::instrument(
