@@ -37,6 +37,7 @@ async fn create_link(
             url: payload.url.clone(),
             title: payload.title.clone(),
             note: payload.note.clone(),
+            bookmarked_at: Utc::now(),
             user: thing(ctx.user_id()).expect("Failed to convert ctx user_id to thing"),
         })
         .await
