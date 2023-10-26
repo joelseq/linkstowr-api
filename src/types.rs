@@ -1,8 +1,11 @@
 use std::sync::Arc;
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use surrealdb::{engine::any::Any, sql::Thing, Surreal};
+use surrealdb::{
+    engine::any::Any,
+    sql::{Datetime, Thing},
+    Surreal,
+};
 
 pub type DB = Surreal<Any>;
 
@@ -22,7 +25,7 @@ pub struct Link {
     pub url: String,
     pub title: String,
     pub note: String,
-    pub bookmarked_at: DateTime<Utc>,
+    pub bookmarked_at: Datetime,
     pub user: Thing,
 }
 

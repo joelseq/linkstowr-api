@@ -2,7 +2,7 @@ use axum::{extract::State, routing::post, Json, Router};
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-use surrealdb::sql::thing;
+use surrealdb::sql::{thing, Datetime};
 use tracing::error;
 
 use crate::{
@@ -37,7 +37,7 @@ async fn create_link(
             url: payload.url.clone(),
             title: payload.title.clone(),
             note: payload.note.clone(),
-            bookmarked_at: Utc::now(),
+            bookmarked_at: Datetime::from(Utc::now()),
             user: thing(ctx.user_id()).expect("Failed to convert ctx user_id to thing"),
         })
         .await
