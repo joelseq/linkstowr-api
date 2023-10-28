@@ -6,6 +6,7 @@ use linkstowr::{
     types::AppState,
 };
 use surrealdb::{engine::any::Any, opt::auth::Root, Surreal};
+use surrealdb_migrations::MigrationRunner;
 use tracing::info;
 
 #[tokio::main]
@@ -64,6 +65,11 @@ async fn get_db(configuration: &Settings) -> Surreal<Any> {
         .use_db(&configuration.database.db)
         .await
         .unwrap();
+
+    MigrationRunner::new(&db)
+        .up()
+        .await
+        .expect("Failed to apply migrations");
 
     info!(
         "Connected to namespace: {}, database: {}",
