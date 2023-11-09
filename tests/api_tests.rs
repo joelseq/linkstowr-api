@@ -1,4 +1,4 @@
-use std::{fs, net::TcpListener};
+use std::net::TcpListener;
 
 use linkstowr::{
     app::get_app,
@@ -13,6 +13,7 @@ use linkstowr::{
 };
 use serde_json::{json, Value};
 use surrealdb::sql::thing;
+use surrealdb_migrations::MigrationRunner;
 use uuid::Uuid;
 
 const TEST_USER_PASSWORD: &str = "password";
@@ -30,12 +31,10 @@ async fn spawn_app() -> TestApp {
     db.use_ns("test").use_db("test").await.unwrap();
 
     // Initialize schema
-    let schema =
-        fs::read_to_string("db/schema.sql").expect("Failed to read schema file from db/schema.sql");
-
-    db.query(schema)
+    MigrationRunner::new(&db)
+        .up()
         .await
-        .expect("Failed to initialize the DB schema");
+        .expect("Failed to apply migrations");
 
     // Setup env var for JWT
     std::env::set_var("JWT_ENCODING_SECRET", JWT_ENCODING_SECRET);
