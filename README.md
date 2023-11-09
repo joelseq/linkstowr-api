@@ -1,5 +1,8 @@
 # LinkStowr API
 
+![GitHub release (latest SemVer)](https://img.shields.io/github/v/release/joelseq/linkstowr-api?sort=semver)
+[<img src="https://img.shields.io/badge/dockerhub-images-important.svg?logo=Docker">](https://hub.docker.com/r/joelseq/linkstowr-api)
+
 API for the LinkStowr web app, chrome extension and obsidian plugin.
 
 ## Developing
